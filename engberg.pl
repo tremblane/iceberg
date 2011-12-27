@@ -1,4 +1,5 @@
 #!/usr/local/bin/perl 
+use warnings;
 
 use lib '/ws/jadew-rtp/perllib';
 use WWW::Mechanize;
@@ -75,6 +76,11 @@ sub parse_and_display {
 	undef %grouped_toas; #talkig on another skill
 	undef %grouped_idle;
 	undef %grouped_ready;
+	undef %analyst_state;
+	undef %analyst_time_min;
+	undef %analyst_time_sec;
+	undef %analyst_time_total;
+	undef %analyst_toas;
 
 	#get staffing count for talking agents
 	foreach my $analyst (@{$tree->{agentstatus}->[0]->{talking}->[0]->{talkinganalyst}}) {
@@ -85,12 +91,20 @@ sub parse_and_display {
 			} else {
 				$staffedskills{$skill} = 1;
 			}
+			if ($skill =~ m/GTRC_ENG/) {
+				$analyst_state{$analyst->{userid}} = "talking";
+				($analyst_time_min{$analyst->{userid}},$analyst_time_sec{$analyst->{userid}})=split(/:/,$analyst->{statedate});
+				$analyst_time_total{$analyst->{userid}} = ($analyst_time_min{$analyst->{userid}} * 60) + $analyst_time_sec{$analyst->{userid}};
+			}
 			# increment count if talking on another skill
 			if ($skill ne $analyst->{talkingon}) {
 				if ($toasskills{$skill}) {
 					$toasskills{$skill} += 1;
 				} else {
 					$toasskills{$skill} = 1;
+				}
+				if ($skill =~ m/GTRC_ENG/) {
+					$analyst_toas{$analyst->{userid}} = "true";
 				}
 			}
 		}
@@ -115,6 +129,11 @@ sub parse_and_display {
 			} else {
 				$idleskills{$skill} = 1;
 			}
+			if ($skill =~ m/GTRC_ENG/) {
+				$analyst_state{$analyst->{userid}} = "idle";
+				($analyst_time_min{$analyst->{userid}},$analyst_time_sec{$analyst->{userid}})=split(/:/,$analyst->{statedate});
+				$analyst_time_total{$analyst->{userid}} = ($analyst_time_min{$analyst->{userid}} * 60) + $analyst_time_sec{$analyst->{userid}};
+			}
 		}
 	}
 
@@ -131,6 +150,11 @@ sub parse_and_display {
 				$readyskills{$skill} += 1;
 			} else {
 				$readyskills{$skill} = 1;
+			}
+			if ($skill =~ m/GTRC_ENG/) {
+				$analyst_state{$analyst->{userid}} = "ready";
+				($analyst_time_min{$analyst->{userid}},$analyst_time_sec{$analyst->{userid}})=split(/:/,$analyst->{statedate});
+				$analyst_time_total{$analyst->{userid}} = ($analyst_time_min{$analyst->{userid}} * 60) + $analyst_time_sec{$analyst->{userid}};
 			}
 		}
 	}
@@ -174,10 +198,11 @@ sub parse_and_display {
 	}
 
 	#print out the grouped staffing numbers
-	print "                        Staff Avail  Idle  Talk (TOAS)\n";
-	print "                        ===== ===== ===== =============\n";
+	print "        Staff Avail  Idle  Talk (TOAS)\n";
+	print "        ===== ===== ===== =============\n";
 	foreach my $group (sort keys %grouped_staffed) {
-		printf ("%-22s %5d %5d %5d %5d",$group,$grouped_staffed{$group},$grouped_ready{$group},$grouped_idle{$group},$grouped_talking{$group});
+		if (!($group eq " ENG" || $group eq " T2D")) { next; }  #skip if not ENG or T2D
+		printf ("%-6s %5d %5d %5d %5d",$group,$grouped_staffed{$group},$grouped_ready{$group},$grouped_idle{$group},$grouped_talking{$group});
 		#only print TOAS if TOAS not zero
 		if ($grouped_toas{$group} > 0) {
 			printf ("  (%2d)\n",$grouped_toas{$group});
@@ -190,7 +215,41 @@ sub parse_and_display {
 	print "\n";
 	print "Queue            Calls  Time\n";
 	print "=====            =====  =====\n";
+	$num_calls = 0;
 	foreach my $queue (@{$tree->{queuestatus}->[0]->{queues}}) {
 		printf("%-15s %5s %7s\n",$queue->{queuename},$queue->{queuenumber},$queue->{queuetime});
+		$num_calls++;
 	}
+	if ($num_calls == 0) { print "No calls holding\n"; }
+
+	#Eng Staffing section
+	#testing: print all eng analysts
+	print "\n\n";
+
+	#Eng Talking
+	print "Eng: Talking\n";
+	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
+		if ( $analyst_state{$analyst} eq "talking" ) {
+			if ($analyst_toas{analyst} eq "true" ) { print "*"; }
+			printf ("%-10s %2i:%02i\n",$analyst,$analyst_time_min{$analyst},$analyst_time_sec{$analyst});
+		}
+	}
+
+	#Eng Idle
+	print "\nEng: Idle\n";
+	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
+		if ( $analyst_state{$analyst} eq "idle" ) {
+			printf ("%-10s %2i:%02i\n",$analyst,$analyst_time_min{$analyst},$analyst_time_sec{$analyst});
+		}
+	}
+
+	#Eng Available
+	print "\nEng: Available\n";
+	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
+		if ( $analyst_state{$analyst} eq "ready" ) {
+			printf ("%-10s %2i:%02i\n",$analyst,$analyst_time_min{$analyst},$analyst_time_sec{$analyst});
+		}
+	}
+
+	#print Dumper(%analyst_time_total);  #DEBUG
 } ## --- end sub parse_and_display
