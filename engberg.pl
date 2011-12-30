@@ -223,9 +223,24 @@ sub parse_and_display {
 	if ($num_calls == 0) { print "No calls holding\n"; }
 
 	#Eng Staffing section
-	#testing: print all eng analysts
-	print "\n\n";
+	#alarm if low staffing
+	if ($grouped_staffed{' ENG'}) {
+		if ($grouped_staffed{' ENG'} >= 2) {
+			$eng_staffing = "GOOD";
+		} else {
+			$eng_staffing = "LOW";
+		}
+	} else {
+		$eng_staffing = "UNSTAFFED";
+	}	
 
+	#print "\nEng Staffing: $eng_staffing\n\n";
+	if ($eng_staffing eq "LOW" || $eng_staffing eq "UNSTAFFED") {
+		#print "\a";
+		print "\n***ALERT: Eng staffing is $eng_staffing***\n";
+	}
+
+	print "\n==========\n";
 	#Eng Talking
 	print "Eng: Talking\n";
 	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
