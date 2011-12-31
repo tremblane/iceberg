@@ -77,9 +77,8 @@ sub parse_and_display {
 	undef %grouped_idle;
 	undef %grouped_ready;
 	undef %analyst_state;
-	undef %analyst_time_min;
-	undef %analyst_time_sec;
-	undef %analyst_time_total;
+	undef %analyst_time;
+	undef %analyst_time_seconds;
 	undef %analyst_toas;
 
 	#get staffing count for talking agents
@@ -93,8 +92,13 @@ sub parse_and_display {
 			}
 			if ($skill =~ m/GTRC_ENG/) {
 				$analyst_state{$analyst->{userid}} = "talking";
-				($analyst_time_min{$analyst->{userid}},$analyst_time_sec{$analyst->{userid}})=split(/:/,$analyst->{statedate});
-				$analyst_time_total{$analyst->{userid}} = ($analyst_time_min{$analyst->{userid}} * 60) + $analyst_time_sec{$analyst->{userid}};
+				$analyst_time{$analyst->{userid}} = $analyst->{statedate};
+				$analyst_time_seconds{$analyst->{userid}} = 0;
+				my $factor = 1;
+				foreach my $segment ( reverse(split(/:/,$analyst->{statedate}) ) ) {
+					$analyst_time_seconds{$analyst->{userid}} += $segment * $factor;
+					$factor = $factor * 60;
+				}
 			}
 			# increment count if talking on another skill
 			if ($skill ne $analyst->{talkingon}) {
@@ -131,8 +135,13 @@ sub parse_and_display {
 			}
 			if ($skill =~ m/GTRC_ENG/) {
 				$analyst_state{$analyst->{userid}} = "idle";
-				($analyst_time_min{$analyst->{userid}},$analyst_time_sec{$analyst->{userid}})=split(/:/,$analyst->{statedate});
-				$analyst_time_total{$analyst->{userid}} = ($analyst_time_min{$analyst->{userid}} * 60) + $analyst_time_sec{$analyst->{userid}};
+				$analyst_time{$analyst->{userid}} = $analyst->{statedate};
+				$analyst_time_seconds{$analyst->{userid}} = 0;
+				my $factor = 1;
+				foreach my $segment ( reverse(split(/:/,$analyst->{statedate}) ) ) {
+					$analyst_time_seconds{$analyst->{userid}} += $segment * $factor;
+					$factor = $factor * 60;
+				}
 			}
 		}
 	}
@@ -153,8 +162,13 @@ sub parse_and_display {
 			}
 			if ($skill =~ m/GTRC_ENG/) {
 				$analyst_state{$analyst->{userid}} = "ready";
-				($analyst_time_min{$analyst->{userid}},$analyst_time_sec{$analyst->{userid}})=split(/:/,$analyst->{statedate});
-				$analyst_time_total{$analyst->{userid}} = ($analyst_time_min{$analyst->{userid}} * 60) + $analyst_time_sec{$analyst->{userid}};
+				$analyst_time{$analyst->{userid}} = $analyst->{statedate};
+				$analyst_time_seconds{$analyst->{userid}} = 0;
+				my $factor = 1;
+				foreach my $segment ( reverse(split(/:/,$analyst->{statedate}) ) ) {
+					$analyst_time_seconds{$analyst->{userid}} += $segment * $factor;
+					$factor = $factor * 60;
+				}
 			}
 		}
 	}
@@ -243,28 +257,27 @@ sub parse_and_display {
 	print "\n==========\n";
 	#Eng Talking
 	print "Eng: Talking\n";
-	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
+	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
 		if ( $analyst_state{$analyst} eq "talking" ) {
 			if ($analyst_toas{analyst}) { print "*"; }
-			printf ("%-10s %2i:%02i\n",$analyst,$analyst_time_min{$analyst},$analyst_time_sec{$analyst});
+			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
 		}
 	}
 
 	#Eng Idle
 	print "\nEng: Idle\n";
-	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
+	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
 		if ( $analyst_state{$analyst} eq "idle" ) {
-			printf ("%-10s %2i:%02i\n",$analyst,$analyst_time_min{$analyst},$analyst_time_sec{$analyst});
+			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
 		}
 	}
 
 	#Eng Available
 	print "\nEng: Available\n";
-	foreach my $analyst ( sort { $analyst_time_total{$b} <=> $analyst_time_total{$a} } keys %analyst_time_total ) {
+	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
 		if ( $analyst_state{$analyst} eq "ready" ) {
-			printf ("%-10s %2i:%02i\n",$analyst,$analyst_time_min{$analyst},$analyst_time_sec{$analyst});
+			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
 		}
 	}
 
-	#print Dumper(%analyst_time_total);  #DEBUG
 } ## --- end sub parse_and_display
