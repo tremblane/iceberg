@@ -259,7 +259,7 @@ sub parse_and_display {
 	print "Eng: Talking\n";
 	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
 		if ( $analyst_state{$analyst} eq "talking" ) {
-			if ($analyst_toas{analyst}) { print "*"; }
+			if ($analyst_toas{$analyst}) { print "*"; }
 			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
 		}
 	}
