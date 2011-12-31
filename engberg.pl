@@ -9,7 +9,7 @@ use Switch;
 
 my $username = $ENV{'USER'};
 my $url = "http://wwwin.cisco.com/cgi-bin/support/tools/iceberg6/iceberg6_buildxml.cgi?agentid=$username";
-my $tempfile = "/tmp/iceberg-$username.xml";
+my $tempfile = "/tmp/engberg-$username.xml";
 
 print "CEC password for $username: ";
 system("stty -echo");
