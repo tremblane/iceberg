@@ -1,11 +1,15 @@
 #!/usr/local/bin/perl 
-use warnings;
+#use warnings;
 
 use lib '/ws/jadew-rtp/perllib';
 use WWW::Mechanize;
 use XML::Simple;
 use Data::Dumper;
 use Switch;
+
+# Magic Numbers
+my $eng_staffing_alert_threshold = 2;
+my $refresh_cycle = 15; #seconds between refreshes
 
 my $username = $ENV{'USER'};
 my $url = "http://wwwin.cisco.com/cgi-bin/support/tools/iceberg6/iceberg6_buildxml.cgi?agentid=$username";
@@ -23,7 +27,7 @@ while ( "forever" ) {
 	get_page();
 	system('clear');
 	parse_and_display();
-	sleep(15);
+	sleep($refresh_cycle);
 }
 
 #===  FUNCTION  ================================================================
@@ -80,6 +84,9 @@ sub parse_and_display {
 	undef %analyst_time;
 	undef %analyst_time_seconds;
 	undef %analyst_toas;
+	undef @eng_talking;
+	undef @eng_idle;
+	undef @eng_ready;
 
 	#get staffing count for talking agents
 	foreach my $analyst (@{$tree->{agentstatus}->[0]->{talking}->[0]->{talkinganalyst}}) {
@@ -94,6 +101,7 @@ sub parse_and_display {
 				$analyst_state{$analyst->{userid}} = "talking";
 				$analyst_time{$analyst->{userid}} = $analyst->{statedate};
 				$analyst_time_seconds{$analyst->{userid}} = 0;
+				#convert HH:MM:SS to total seconds
 				my $factor = 1;
 				foreach my $segment ( reverse(split(/:/,$analyst->{statedate}) ) ) {
 					$analyst_time_seconds{$analyst->{userid}} += $segment * $factor;
@@ -137,6 +145,7 @@ sub parse_and_display {
 				$analyst_state{$analyst->{userid}} = "idle";
 				$analyst_time{$analyst->{userid}} = $analyst->{statedate};
 				$analyst_time_seconds{$analyst->{userid}} = 0;
+				#convert HH:MM:SS to total seconds
 				my $factor = 1;
 				foreach my $segment ( reverse(split(/:/,$analyst->{statedate}) ) ) {
 					$analyst_time_seconds{$analyst->{userid}} += $segment * $factor;
@@ -164,6 +173,7 @@ sub parse_and_display {
 				$analyst_state{$analyst->{userid}} = "ready";
 				$analyst_time{$analyst->{userid}} = $analyst->{statedate};
 				$analyst_time_seconds{$analyst->{userid}} = 0;
+				#convert HH:MM:SS to total seconds
 				my $factor = 1;
 				foreach my $segment ( reverse(split(/:/,$analyst->{statedate}) ) ) {
 					$analyst_time_seconds{$analyst->{userid}} += $segment * $factor;
@@ -225,6 +235,17 @@ sub parse_and_display {
 		}
 	}
 
+	#set alarm level if low/no staffing
+	if ($grouped_staffed{' ENG'}) {
+		if ($grouped_staffed{' ENG'} >= $eng_staffing_alert_threshold) {
+			$eng_staffing = "GOOD";
+		} else {
+			$eng_staffing = "LOW";
+		}
+	} else {
+		$eng_staffing = "UNSTAFFED";
+	}	
+
 	#print holding calls
 	print "\n";
 	print "Queue            Calls  Time\n";
@@ -236,48 +257,53 @@ sub parse_and_display {
 	}
 	if ($num_calls == 0) { print "No calls holding\n"; }
 
-	#Eng Staffing section
-	#alarm if low staffing
-	if ($grouped_staffed{' ENG'}) {
-		if ($grouped_staffed{' ENG'} >= 2) {
-			$eng_staffing = "GOOD";
-		} else {
-			$eng_staffing = "LOW";
-		}
-	} else {
-		$eng_staffing = "UNSTAFFED";
-	}	
 
-	#print "\nEng Staffing: $eng_staffing\n\n";
-	if ($eng_staffing eq "LOW" || $eng_staffing eq "UNSTAFFED") {
-		#print "\a";
-		print "\n***ALERT: Eng staffing is $eng_staffing***\n";
-	}
+	print "\n";
 
-	print "\n==========\n";
-	#Eng Talking
-	print "Eng: Talking\n";
+
+	#3 column display of agents (Eng skill only)
+
+	#gather agents into the three lists
 	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
 		if ( $analyst_state{$analyst} eq "talking" ) {
-			if ($analyst_toas{$analyst}) { print "*"; }
-			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
+			push (@eng_talking, $analyst);
+		} elsif ( $analyst_state{$analyst} eq "idle" ) {
+			push (@eng_idle, $analyst);
+		} elsif ( $analyst_state{$analyst} eq "ready" ) {
+			push (@eng_ready, $analyst);
+		}
+	}
+	
+	#find the size of the longest list
+	my $size = @eng_talking;
+	if ( scalar(@eng_idle) > $size ) { $size = @eng_idle; }
+	if ( scalar(@eng_ready) > $size ) { $size = @eng_ready; }
+	
+	#print column headers
+	print " TALKING               NOT READY             READY\n";
+	print " =======               =========             =====\n";
+	
+	if ($eng_staffing eq "UNSTAFFED") {
+		print "***No analysts with ENG skill logged in***\n";
+	} else {
+		#print the columns	
+		for ($index = 0; $index < $size; $index++) {
+			my $talking = $eng_talking[$index];
+			my $idle = $eng_idle[$index];
+			my $ready = $eng_ready[$index];
+			#print an * if TOAS, else a space
+			if ( $analyst_toas{$talking} eq "true") {
+				print "*";
+			} else {
+				print " ";
+			}
+			printf("%-10s %8s | %-10s %8s | %-10s %8s\n",$talking,$analyst_time{$talking},$idle,$analyst_time{$idle},$ready,$analyst_time{$ready});
 		}
 	}
 
-	#Eng Idle
-	print "\nEng: Idle\n";
-	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
-		if ( $analyst_state{$analyst} eq "idle" ) {
-			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
-		}
-	}
 
-	#Eng Available
-	print "\nEng: Available\n";
-	foreach my $analyst ( sort { $analyst_time_seconds{$b} <=> $analyst_time_seconds{$a} } keys %analyst_time_seconds ) {
-		if ( $analyst_state{$analyst} eq "ready" ) {
-			printf ("%-10s %8s\n",$analyst,$analyst_time{$analyst});
-		}
+	if ($eng_staffing eq "LOW" || $eng_staffing eq "UNSTAFFED") {
+		print "\a";
+		print "\n***ALERT: Eng staffing is $eng_staffing***\n";
 	}
-
 } ## --- end sub parse_and_display
