@@ -284,6 +284,7 @@ sub parse_and_display {
 	print " =======               =========             =====\n";
 	
 	if ($eng_staffing eq "UNSTAFFED") {
+		print "\a";
 		print "***No analysts with ENG skill logged in***\n";
 	} else {
 		#print the columns	
@@ -302,7 +303,7 @@ sub parse_and_display {
 	}
 
 
-	if ($eng_staffing eq "LOW" || $eng_staffing eq "UNSTAFFED") {
+	if ($eng_staffing eq "LOW") {
 		print "\a";
 		print "\n***ALERT: Eng staffing is $eng_staffing***\n";
 	}
