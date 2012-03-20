@@ -6,10 +6,14 @@ use WWW::Mechanize;
 use XML::Simple;
 use Data::Dumper;
 use Switch;
+use Term::ANSIColor;
 
 # Magic Numbers
-my $eng_staffing_alert_threshold = 2;
+my $eng_staffing_alert_threshold = 2; #minimum agents to be staffed
+my $eng_holdtime_warning_threshold = 3; #minutes of call holding
+my $eng_holdtime_alarm_threshold = 5; #minutes of call holding
 my $refresh_cycle = 15; #seconds between refreshes
+
 
 my $username = $ENV{'USER'};
 my $url = "http://wwwin.cisco.com/pcgi-bin/it/ice6/core/iceberg6/iceberg6_buildxml.cgi?agentid=$username"; 
@@ -79,6 +83,7 @@ sub parse_and_display {
 	undef @eng_talking;
 	undef @eng_idle;
 	undef @eng_ready;
+	undef $eng_queue_alert;
 
 	#get staffing count for talking agents
 	foreach my $analyst (@{$tree->{agentstatus}->[0]->{talking}->[0]->{talkinganalyst}}) {
@@ -244,7 +249,20 @@ sub parse_and_display {
 	print "=====            =====  =====\n";
 	$num_calls = 0;
 	foreach my $queue (@{$tree->{queuestatus}->[0]->{queues}}) {
+		($queue_time_min,$queue_time_sec) = split(/:/,$queue->{queuetime});
+		if ( $queue->{queuename} =~ m/Global-ENG/i ) {
+			if ( $queue_time_min >= $eng_holdtime_warning_threshold ) {
+				print color 'yellow';
+				$eng_queue_alert = "WARNING";
+			}
+			if ( $queue_time_min >= $eng_holdtime_alarm_threshold )
+			{
+				print color 'bold red';
+				$eng_queue_alert = "ALARM";
+			}
+		}
 		printf("%-15s %5s %7s\n",$queue->{queuename},$queue->{queuenumber},$queue->{queuetime});
+		print color 'reset';
 		$num_calls++;
 	}
 	if ($num_calls == 0) { print "No calls holding\n"; }
@@ -277,7 +295,9 @@ sub parse_and_display {
 	
 	if ($eng_staffing eq "UNSTAFFED") {
 		print "\a";
+		print color 'bold red';
 		print "***No analysts with ENG skill logged in***\n";
+		print color 'reset';
 	} else {
 		#print the columns	
 		for ($index = 0; $index < $size; $index++) {
@@ -297,6 +317,19 @@ sub parse_and_display {
 
 	if ($eng_staffing eq "LOW") {
 		print "\a";
+		print color 'yellow';
 		print "\n***ALERT: Eng staffing is $eng_staffing***\n";
+		print color 'reset';
+	}
+
+	if ($eng_queue_alert eq "WARNING") {
+		print color 'yellow';
+		print "\n***WARNING: Possible Eng sniper needed***\n";
+		print color 'reset';
+	}
+	if ($eng_queue_alert eq "ALARM") {
+		print color 'bold red';
+		print "\n***ALERT: Eng sniper needed***\n";
+		print color 'reset';
 	}
 } ## --- end sub parse_and_display
