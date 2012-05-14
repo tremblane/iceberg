@@ -223,7 +223,7 @@ sub parse_and_display {
 	print "        Staff Avail  Idle  Talk (TOAS)\n";
 	print "        ===== ===== ===== =============\n";
 	foreach my $group (sort keys %grouped_staffed) {
-		if (!($group eq " ENG" || $group eq " T2D")) { next; }  #skip if not ENG or T2D
+		if (!($group eq " ENG" || $group eq " T2D" || $group eq " MAC")) { next; }  #skip if not ENG or T2D
 		printf ("%-6s %5d %5d %5d %5d",$group,$grouped_staffed{$group},$grouped_ready{$group},$grouped_idle{$group},$grouped_talking{$group});
 		#only print TOAS if TOAS not zero
 		if ($grouped_toas{$group} > 0) {
