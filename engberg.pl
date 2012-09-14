@@ -16,7 +16,7 @@ my $refresh_cycle = 15; #seconds between refreshes
 
 
 my $username = $ENV{'USER'};
-my $url = "http://wwwin.cisco.com/pcgi-bin/it/ice6/core/iceberg6/iceberg6_buildxml.cgi?agentid=$username"; 
+my $url = "http://wwwin-dev.cisco.com/pcgi-bin/it/ice6/core/iceberg6/iceberg6_buildxml.cgi?agentid=$username"; 
 my $tempfile = "/tmp/engberg-$username.xml";
 
 # main loop
