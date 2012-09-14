@@ -8,6 +8,7 @@ use Data::Dumper;
 use Switch;
 use Term::ANSIColor;
 use Getopt::Long;
+use Pod::Usage;
 
 # Magic Numbers
 my $eng_staffing_alert_threshold = 2; #minimum agents to be staffed
@@ -19,7 +20,7 @@ my $useDev;
 
 GetOptions(
 	"--dev" => \$useDev
-);
+) or pod2usage( {'VERBOSE' => 0} );
 
 
 my $username = $ENV{'USER'};
