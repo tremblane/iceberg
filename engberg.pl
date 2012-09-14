@@ -7,6 +7,7 @@ use XML::Simple;
 use Data::Dumper;
 use Switch;
 use Term::ANSIColor;
+use Getopt::Long;
 
 # Magic Numbers
 my $eng_staffing_alert_threshold = 2; #minimum agents to be staffed
@@ -14,9 +15,18 @@ my $eng_holdtime_warning_threshold = 3; #minutes of call holding
 my $eng_holdtime_alarm_threshold = 5; #minutes of call holding
 my $refresh_cycle = 15; #seconds between refreshes
 
+my $useDev;
+
+GetOptions(
+	"--dev" => \$useDev
+);
+
 
 my $username = $ENV{'USER'};
-my $url = "http://wwwin-dev.cisco.com/pcgi-bin/it/ice6/core/iceberg6/iceberg6_buildxml.cgi?agentid=$username"; 
+my $url = "http://wwwin.cisco.com/pcgi-bin/it/ice6/core/iceberg6/iceberg6_buildxml.cgi?agentid=$username"; 
+if (defined($useDev)) {
+	$url = "http://wwwin-dev.cisco.com/pcgi-bin/it/ice6/core/iceberg6/iceberg6_buildxml.cgi?agentid=$username"; 
+}
 my $tempfile = "/tmp/engberg-$username.xml";
 
 # main loop
@@ -219,8 +229,10 @@ sub parse_and_display {
 		if ($toasskills{$skill}) { $grouped_toas{$group} += $toasskills{$skill}; }
 	}
 
-## print notice that this is the dev version
-print "**Using dev server**\n\n";
+if (defined($useDev)) {
+	## print notice that this is the dev version
+	print "**Using dev server**\n\n";
+}
 
 	#print out the grouped staffing numbers
 	print "        Staff Avail  Idle  Talk (TOAS)\n";
