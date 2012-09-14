@@ -219,6 +219,9 @@ sub parse_and_display {
 		if ($toasskills{$skill}) { $grouped_toas{$group} += $toasskills{$skill}; }
 	}
 
+## print notice that this is the dev version
+print "**Using dev server**\n\n";
+
 	#print out the grouped staffing numbers
 	print "        Staff Avail  Idle  Talk (TOAS)\n";
 	print "        ===== ===== ===== =============\n";
