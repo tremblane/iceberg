@@ -6,7 +6,7 @@
 # Description: Displays information from Iceberg in the
 # terminal.
 #
-# Usage: iceberg.pl [--eng|--all] [--user=<USERNAME>]
+# Usage: iceberg.pl  [--dev] [--eng|--all] [--user=<USERNAME>]
 #
 # Author: jadew
 #
@@ -457,7 +457,7 @@ iceberg.pl - Terminal display of Iceberg
 
 =head1 SYNOPSIS
 
-iceberg.pl [--eng | --all] [--user <username>]
+iceberg.pl [--dev] [--eng | --all] [--user <username>]
 
 iceberg.pl { --help | --man }
 
@@ -471,11 +471,15 @@ Display all agents and their times. (Mutually exclusive with the --eng option)
 
 =item B<-e, --eng>
 
-Display agents and their times only if they have the ENG skill. Only display staffing counts for Eng, Mac, and T2D skills.
+Display agents and their times only if they have the ENG skill. Only display staffing counts for Eng, Mac, and T2D skills. If an agent has the Eng skill but is talking on another skill, shows an '*' in front of their username.
 
 =item B<-u, --user=USERNAME>
 
 Use Iceberg settings for USERNAME, instead of settings for the user running the command (default behavior).
+
+=item B<-d, --dev>
+
+Use the dev Iceberg server for data (in case prod is down).
 
 =head1 DESCRIPTION
 
