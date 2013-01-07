@@ -439,11 +439,11 @@ my (
 				print color 'reset';
 			}
 		}
+		if ($total_agents == 0) {
+			print "\n\n** Warning: No agents found in data from Iceberg **\n";
+		}
 	} # end if ( defined($modeEng) or defined($modeAll) )
 
-	if ($total_agents == 0) {
-		print "\n\n** Warning: No agents found in data from Iceberg **\n";
-	}
 } ## --- end sub parse_and_display
 
 #pod usage
