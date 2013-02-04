@@ -42,6 +42,7 @@ my (
 	$username,
 	$verbose1,
 	$verbose2,
+	$modeBeep
 );
 
 GetOptions(
@@ -50,7 +51,8 @@ GetOptions(
 	"--a|all" => \$modeAll,
 	"--u|user=s" => \$username,
 	"--m|man" => \$verbose2,
-	"--h|help" => \$verbose1
+	"--h|help" => \$verbose1,
+	"--beep" => \$modeBeep
 ) or pod2usage( {'VERBOSE' => 0} );
 
 pod2usage( {'VERBOSE' => 1} ) if ( defined( $verbose1 ) );
@@ -400,7 +402,7 @@ my (
 		print " =======              =========            =====\n";
 		
 		if ($eng_staffing eq "UNSTAFFED") {
-			print "\a";
+			print "\a" if ( defined($modeBeep) );
 			print color 'bold red';
 			print "***No analysts with ENG skill logged in***\n";
 			print color 'reset';
@@ -422,7 +424,7 @@ my (
 
 		if ( defined($modeEng) ) {
 			if ( $eng_staffing eq "LOW" and $total_agents > 0 ) {
-				print "\a";
+				print "\a" if ( defined($modeBeep) );
 				print color 'yellow';
 				print "\n***ALERT: Eng staffing is $eng_staffing***\n";
 				print color 'reset';
@@ -457,7 +459,7 @@ iceberg.pl - Terminal display of Iceberg
 
 =head1 SYNOPSIS
 
-iceberg.pl [--dev] [--eng | --all] [--user <username>]
+iceberg.pl [--dev] [--eng | --all] [--user <username>] [--beep]
 
 iceberg.pl { --help | --man }
 
@@ -480,6 +482,10 @@ Use Iceberg settings for USERNAME, instead of settings for the user running the 
 =item B<-d, --dev>
 
 Use the dev Iceberg server for data (in case prod is down).
+
+=item B<--beep>
+
+Print a terminal bell if the Eng staffing level is LOW or UNSTAFFED.
 
 =head1 DESCRIPTION
 
