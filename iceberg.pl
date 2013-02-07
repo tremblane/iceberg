@@ -19,7 +19,6 @@
 #use warnings;
 use strict;
 
-use lib '/ws/jadew-rtp/perllib';
 use WWW::Mechanize;
 use XML::Simple;
 use Data::Dumper;
